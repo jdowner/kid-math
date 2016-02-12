@@ -184,7 +184,7 @@ class Tester(object):
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser()
     parser.add_argument('--verbose', '-v', action='store_true')
-    parser.add_argument('--timeout', '-t', default=10)
+    parser.add_argument('--timeout', '-t', default=10, type=int)
 
     args = parser.parse_args(argv)
 
@@ -202,7 +202,7 @@ def main(argv=sys.argv[1:]):
                 q = t.question()
 
                 try:
-                    coro = timed_input('{} + {} = '.format(q.x, q.y), 5)
+                    coro = timed_input('{} + {} = '.format(q.x, q.y), args.timeout)
                     a = yield from coro
 
                     q.answer(int(a))
@@ -261,13 +261,16 @@ if __name__ == "__main__":
     except (SystemExit, KeyboardInterrupt):
         # At this point the event loop as been stopped. To clean up cancel all
         # of the tasks and then allow the event loop to run again.
-        for task in asyncio.Task.all_tasks():
-            task.cancel()
+        tasks = asyncio.Task.all_tasks()
+        if tasks:
+            for task in tasks:
+                task.cancel()
 
-        loop.run_forever()
+            loop.run_forever()
 
     finally:
-        loop.close()
+        if loop.is_running():
+            loop.close()
 
     print('\n\nGood job! Take a break.')
     print(cat)
