@@ -184,7 +184,7 @@ class Tester(object):
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser()
     parser.add_argument('--verbose', '-v', action='store_true')
-    parser.add_argument('--timeout', '-t', default=10)
+    parser.add_argument('--timeout', '-t', default=10, type=int)
 
     args = parser.parse_args(argv)
 
