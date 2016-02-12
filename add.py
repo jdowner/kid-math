@@ -202,7 +202,7 @@ def main(argv=sys.argv[1:]):
                 q = t.question()
 
                 try:
-                    coro = timed_input('{} + {} = '.format(q.x, q.y), 5)
+                    coro = timed_input('{} + {} = '.format(q.x, q.y), args.timeout)
                     a = yield from coro
 
                     q.answer(int(a))
