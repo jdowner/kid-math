@@ -261,13 +261,16 @@ if __name__ == "__main__":
     except (SystemExit, KeyboardInterrupt):
         # At this point the event loop as been stopped. To clean up cancel all
         # of the tasks and then allow the event loop to run again.
-        for task in asyncio.Task.all_tasks():
-            task.cancel()
+        tasks = asyncio.Task.all_tasks()
+        if tasks:
+            for task in tasks:
+                task.cancel()
 
-        loop.run_forever()
+            loop.run_forever()
 
     finally:
-        loop.close()
+        if loop.is_running():
+            loop.close()
 
     print('\n\nGood job! Take a break.')
     print(cat)
