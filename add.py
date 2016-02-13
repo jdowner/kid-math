@@ -184,79 +184,48 @@ class Tester(object):
 def main(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser()
     parser.add_argument('--verbose', '-v', action='store_true')
+    parser.add_argument('--summary', '-s', action='store_true')
     parser.add_argument('--timeout', '-t', default=10, type=int)
 
     args = parser.parse_args(argv)
 
     log.setLevel(logging.DEBUG if args.verbose else logging.INFO)
 
-
     t = Tester()
     loop = asyncio.get_event_loop()
 
-    while True:
-        try:
-            @asyncio.coroutine
-            def ask_question():
-                nonlocal t
-                q = t.question()
-
-                try:
-                    coro = timed_input('{} + {} = '.format(q.x, q.y), args.timeout)
-                    a = yield from coro
-
-                    q.answer(int(a))
-
-                except asyncio.futures.TimeoutError:
-                    print('X')
-                    t.incorrect(q.x, q.y)
-
-                t.update_state()
-
-            loop.run_until_complete(ask_question())
-
-        except Exception as e:
-            log.exception(e)
-
-        if not (t.learning + t.confused):
-            print("congratulations! You have mastered the numbers")
-            print(", ".join(map(str, t.mastery)))
-            break
-
-    px0 = 1 / 9
-    py0 = 7 / 9
-    pz0 = 1 / 9
-
-    for n in t.results.values():
-        if n.total == 0:
-            continue
-
-        px = binomial(0.9, n.correct, n.total)
-        py = binomial(0.5, n.correct, n.total)
-        pz = binomial(0.3, n.correct, n.total)
-
-        x = px * px0
-        y = py * py0
-        z = pz * pz0
-
-        px = x / (x + y + z)
-        py = y / (x + y + z)
-        pz = z / (x + y + z)
-
-        if px == max(px, py, pz):
-            log.debug(n, px, 'mastery')
-        elif py == max(px, py, pz):
-            log.debug(n, py, 'learning')
-        elif pz == max(px, py, pz):
-            log.debug(n, pz, 'confused')
-
-
-if __name__ == "__main__":
-    logging.basicConfig()
-    loop = asyncio.get_event_loop()
-
     try:
-        main()
+        while True:
+            try:
+                @asyncio.coroutine
+                def ask_question():
+                    nonlocal t
+                    q = t.question()
+
+                    try:
+                        coro = timed_input('{} + {} = '.format(q.x, q.y), args.timeout)
+                        a = yield from coro
+
+                        q.answer(int(a))
+
+                    except ValueError:
+                        t.incorrect(q.x, q.y)
+
+                    except asyncio.futures.TimeoutError:
+                        print('X')
+                        t.incorrect(q.x, q.y)
+
+                    t.update_state()
+
+                loop.run_until_complete(ask_question())
+
+            except Exception as e:
+                log.exception(e)
+
+            if not (t.learning + t.confused):
+                print("congratulations! You have mastered the numbers")
+                print(", ".join(map(str, t.mastery)))
+                break
 
     except (SystemExit, KeyboardInterrupt):
         # At this point the event loop as been stopped. To clean up cancel all
@@ -272,5 +241,37 @@ if __name__ == "__main__":
         if loop.is_running():
             loop.close()
 
+        if args.summary:
+            print('\n\nSUMMARY\n' + 50 * '=' + '\n')
+
+            px0 = 1
+            py0 = 7
+            pz0 = 1
+
+            for n in t.results.values():
+                px = binomial(0.9, n.correct, n.total)
+                py = binomial(0.5, n.correct, n.total)
+                pz = binomial(0.3, n.correct, n.total)
+
+                x = px * px0
+                y = py * py0
+                z = pz * pz0
+
+                px = x / (x + y + z)
+                py = y / (x + y + z)
+                pz = z / (x + y + z)
+
+                if px == max(px, py, pz):
+                    print("{}: {}|{}".format(n, 'mastery', px))
+                elif py == max(px, py, pz):
+                    print("{}: {}|{}".format(n, 'learning', py))
+                elif pz == max(px, py, pz):
+                    print("{}: {}|{}".format(n, 'confused', pz))
+
     print('\n\nGood job! Take a break.')
     print(cat)
+
+
+if __name__ == "__main__":
+    logging.basicConfig()
+    main()
